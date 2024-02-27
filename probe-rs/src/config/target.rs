@@ -9,7 +9,7 @@ use super::{
         esp32h2::ESP32H2,
         esp32s2::ESP32S2,
         esp32s3::ESP32S3,
-        infineon::XMC4000,
+        infineon::{TLE98xx, XMC4000},
         nrf52::Nrf52,
         nrf53::Nrf5340,
         nrf91::Nrf9160,
@@ -186,6 +186,8 @@ impl Target {
             DebugSequence::Arm(AtSAM::create())
         } else if chip.name.starts_with("XMC4") {
             DebugSequence::Arm(XMC4000::create())
+        } else if chip.name.starts_with("TLE98") {
+            DebugSequence::Arm(TLE98xx::create())
         } else {
             // Default to the architecture of the first core, which is okay if
             // there is no mixed architectures.

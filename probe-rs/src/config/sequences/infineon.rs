@@ -12,6 +12,37 @@ use std::time::{Duration, Instant};
 use crate::architecture::arm::communication_interface::DapProbe;
 use crate::{probe::DebugProbeError, MemoryMappedRegister};
 
+/// An Infineon TLE98xx MCU
+#[derive(Debug)]
+pub struct TLE98xx {}
+
+impl TLE98xx {
+    /// Create the sequencer for an Infineon TLE98xx.
+    pub fn create() -> Arc<Self> {
+        Arc::new(Self {})
+    }
+}
+
+impl ArmDebugSequence for TLE98xx {
+    fn reset_hardware_assert(&self, _interface: &mut dyn DapProbe) -> Result<(), ArmError> {
+        tracing::trace!("performing TLE98xx ResetHardwareAssert");
+
+        use crate::architecture::arm::Pins;
+
+        // We want to drive nRST, TCK, and TMS
+        let mut pin_select = Pins(0);
+        pin_select.set_nreset(true);
+        pin_select.set_swclk_tck(true);
+        pin_select.set_swdio_tms(true);
+
+        // We want to drive nRST low to command the reset
+        let mut pin_output = Pins(0);
+        pin_output.set_nreset(false);
+
+        Ok(())
+    }
+}
+
 /// An Infineon XMC4xxx MCU.
 #[derive(Debug)]
 pub struct XMC4000 {
