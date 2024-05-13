@@ -24,21 +24,39 @@ impl TLE98xx {
 }
 
 impl ArmDebugSequence for TLE98xx {
-    fn reset_hardware_assert(&self, _interface: &mut dyn DapProbe) -> Result<(), ArmError> {
+    fn reset_hardware_assert(&self, interface: &mut dyn DapProbe) -> Result<(), ArmError> {
         tracing::trace!("performing TLE98xx ResetHardwareAssert");
-
         use crate::architecture::arm::Pins;
 
-        // We want to drive nRST, TCK, and TMS
         let mut pin_select = Pins(0);
         pin_select.set_nreset(true);
         pin_select.set_swclk_tck(true);
         pin_select.set_swdio_tms(true);
 
-        // We want to drive nRST low to command the reset
+        // We want to drive nRST low to enter reset
         let mut pin_output = Pins(0);
         pin_output.set_nreset(false);
 
+        // wait 50ms in reset state (This is what segger does for the TLE98xx alteast)
+        let _ = interface.swj_pins(pin_output.0 as u32, pin_select.0 as u32, 50000)?;
+
+        // We want to release nRST to enter debug mode
+        // TMS and TCK must be high to enter debug mode
+        pin_output.set_nreset(true);
+        pin_output.set_swclk_tck(true);
+        pin_output.set_swdio_tms(true);
+        let _ = interface.swj_pins(pin_output.0 as u32, pin_select.0 as u32, 1000)?;
+
+        pin_output.set_swclk_tck(false);
+        pin_output.set_swdio_tms(false);
+        let _ = interface.swj_pins(pin_output.0 as u32, pin_select.0 as u32, 1000)?;
+
+        Ok(())
+    }
+
+    fn reset_hardware_deassert(&self, _memory: &mut dyn ArmProbe) -> Result<(), ArmError> {
+        tracing::trace!("performing TLE98xx ResetHardwareDeassert");
+        // nRST is deasserted already
         Ok(())
     }
 }
